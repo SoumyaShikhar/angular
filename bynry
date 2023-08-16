@@ -1,0 +1,107 @@
+npm install -g @angular/cli
+ng new ProfileExplorer
+ng generate component profile-list
+ng generate component profile-detail
+ng generate component map
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { ProfileListComponent } from './profile-list/profile-list.component';
+import { ProfileDetailComponent } from './profile-detail/profile-detail.component';
+
+const routes: Routes = [
+  { path: '', redirectTo: '/profiles', pathMatch: 'full' },
+  { path: 'profiles', component: ProfileListComponent },
+  { path: 'profiles/:id', component: ProfileDetailComponent },
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+
+
+
+# for interactive mapping
+
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Explorer</title>
+  <!-- Include Google Maps API script -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+
+map.component.ts
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+
+@Component({
+  selector: 'app-map',
+  template: '<div #mapContainer class="map-container"></div>',
+  styleUrls: ['./map.component.css']
+})
+export class MapComponent implements OnChanges {
+  @Input() latitude: number;
+  @Input() longitude: number;
+
+  private map: google.maps.Map;
+  private marker: google.maps.Marker;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.latitude && changes.longitude) {
+      this.updateMap();
+    }
+  }
+
+  private updateMap(): void {
+    if (!this.map) {
+      this.map = new google.maps.Map(this.mapContainer.nativeElement, {
+        center: { lat: this.latitude, lng: this.longitude },
+        zoom: 12
+      });
+
+      this.marker = new google.maps.Marker({
+        position: { lat: this.latitude, lng: this.longitude },
+        map: this.map
+      });
+    } else {
+      this.map.setCenter({ lat: this.latitude, lng: this.longitude });
+      this.marker.setPosition({ lat: this.latitude, lng: this.longitude });
+    }
+  }
+}
+
+
+profile-detail.component.ts
+
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { ProfileService } from '../profile.service';
+
+@Component({
+  selector: 'app-profile-detail',
+  templateUrl: './profile-detail.component.html',
+  styleUrls: ['./profile-detail.component.css']
+})
+export class ProfileDetailComponent implements OnInit {
+  profile: any;
+  showMapMarker: boolean = false;
+
+  constructor(private route: ActivatedRoute, private profileService: ProfileService) { }
+
+  ngOnInit(): void {
+    const profileId = this.route.snapshot.paramMap.get('id');
+    this.profile = this.profileService.getProfileById(profileId);
+  }
+
+  showMap(): void {
+    this.showMapMarker = true;
+  }
+}
